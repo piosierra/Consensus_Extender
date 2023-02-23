@@ -53,7 +53,9 @@ spec = matrix(
     'group_outliers',       'l', 0, "logical",
     'interactive',          'n', 0, "logical",
     'top_rounds',           'r', 1, "integer",
-    'min_seqs_per_cluster', 'q', 1, "integer"
+    'min_seqs_per_cluster', 'q', 1, "integer",
+    'extend',               'e', 1, "integer",
+    'identity',             'd', 1, "double"
   ),
   byrow = TRUE,
   ncol = 4
@@ -124,6 +126,16 @@ if ( is.null(opt$top_rounds)) {
   opt$top_rounds <- 10 
 } 
 
+# Bases to extend
+if ( is.null(opt$extend)) {
+  opt$top_rounds <- 500 
+} 
+
+# Percentage of identity for blast.
+if ( is.null(opt$identity)) {
+  opt$top_rounds <- 0.8
+} 
+
 # Read a maf file, store it on a data.table and include on the first column 
 # its name to carry it on the rest of functions.
 
@@ -173,16 +185,20 @@ seq_clus <- function(maf) {
     print(paste("[+++] Kimura Distance of full alignment:",kd))
     
     if (ncol(maf) > opt$min_cluster) { # Don't try to cluster if less than min_cluster sequences
+      print(paste("[+++] Proceeding to cluster ", name))
       if (ncol(maf) > opt$max_sequences) { # If more than max_sequences get a sample of them
         maf <- sample(maf, opt$max_sequences)
         # Recalculate d if we are using a sample.
         d <- dist.dna(as.DNAbin(t(maf)), pairwise.deletion = TRUE)
+        print(paste("[+++] Sampling",opt$max_sequences, "sequences from the alignment."))
       }
       num_seqs <- ncol(maf)
       # Calculating mp value for DBSCAN based on the clustering factor and the minimum size of cluster
       mp <- ncol(maf) %/% opt$cluster_factor
       mp <- max(mp,opt$min_cluster%/%2) 
 
+      print(paste("[+++] Mpoints = ", mp))
+      
       # Calculating the eps for DBSCAN as the one that produces more "stable" clusters.
       # We define "stable as clusters that remain for a distance of at least 0.04 (3 eps "steps")
       # The idea is to ignore clusters that are happen just at specific values as outliers.
@@ -195,6 +211,8 @@ seq_clus <- function(maf) {
         candidate <- sum(unique(dbscan(d, eps = eps, minPts = mp)$cluster) != 0)
         points <- append(points,candidate)
       }
+      
+      print(points)
       # 3 means the cluster must extend at least over 3 eps candidate steps ("stable cluster") 
       # Could be made a parameter.
       nclusters <- max(as.numeric(names(table(points)[table(points)>3]))) 
@@ -231,6 +249,7 @@ seq_clus <- function(maf) {
       }  
     }  
     else {
+      print(paste("[+++] No need to cluster ", name))
       mafs <- list() 
       mafs[[1]] <- data.table(maf)
       colnames(mafs[[1]])[1] <- paste0(name, "_alt_1")
