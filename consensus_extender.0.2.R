@@ -13,11 +13,11 @@
 
 # Uncomment this to run in slurm if you need to install packages in your own folder.
 
-local({r <- getOption("repos")
-r["CRAN"] <- "https://cran.r-project.org"
-options(repos=r)
-})
-.libPaths( c( "~/R/x86_64-pc-linux-gnu-library/3.6" , .libPaths() ) )
+# local({r <- getOption("repos")
+# r["CRAN"] <- "https://cran.r-project.org"
+# options(repos=r)
+# })
+# .libPaths( c( "~/R/x86_64-pc-linux-gnu-library/3.6" , .libPaths() ) )
 
 # To make the sampling reproducible.
 set.seed(1234) 
