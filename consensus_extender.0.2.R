@@ -131,7 +131,7 @@ read_maf <- function(maf_file) {
   name <- gsub(".*/", "", maf_file)
   name <- gsub("\\..*$", "", name)
   print(paste("[+++] Processing:",name))
-  # Avoid processing a maf already proccessed. 
+  # Avoid processing a maf already processed.
   if ((file.size(maf_file) != 0L) & 
       !(file.exists(paste0(opt$output, "/", name, "_alt_1.con.fa")) |
       (file.exists(paste0(opt$output, "/", name, "_alt_0.con.fa"))) |
@@ -168,15 +168,17 @@ seq_clus <- function(maf) {
   }
   else {
     name <- colnames(maf)[1]
-    kd <- mean(dist.dna(as.DNAbin(t(maf))), pairwise.deletion = TRUE) # Average Kimura distance of all the maf 
+    d <- dist.dna(as.DNAbin(t(maf)), pairwise.deletion = TRUE)
+    kd <- mean(d) # Average Kimura distance of all the maf 
     print(paste("[+++] Kimura Distance of full alignment:",kd))
     
     if (ncol(maf) > opt$min_cluster) { # Don't try to cluster if less than min_cluster sequences
       if (ncol(maf) > opt$max_sequences) { # If more than max_sequences get a sample of them
         maf <- sample(maf, opt$max_sequences)
+        # Recalculate d if we are using a sample.
+        d <- dist.dna(as.DNAbin(t(maf)), pairwise.deletion = TRUE)
       }
       num_seqs <- ncol(maf)
-      d <- dist.dna(as.DNAbin(t(maf)), pairwise.deletion = TRUE)
       # Calculating mp value for DBSCAN based on the clustering factor and the minimum size of cluster
       mp <- ncol(maf) %/% opt$cluster_factor
       mp <- max(mp,opt$min_cluster%/%2) 
