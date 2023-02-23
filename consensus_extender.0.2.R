@@ -128,12 +128,12 @@ if ( is.null(opt$top_rounds)) {
 
 # Bases to extend
 if ( is.null(opt$extend)) {
-  opt$top_rounds <- 500 
+  opt$extend <- 500 
 } 
 
 # Percentage of identity for blast.
 if ( is.null(opt$identity)) {
-  opt$top_rounds <- 0.8
+  opt$identity <- 0.8
 } 
 
 # Read a maf file, store it on a data.table and include on the first column 
@@ -421,7 +421,7 @@ filenames <-
 setwd(paste0(opt$output,"/mafs_",round))
 for (i in 1:length(filenames)) {
   system(command = paste0("../../",script.basename,"/make_align_from_blast_alt.sh ",
-                          opt$genome," ", "../../",filenames[i]," ", fasta.table[i,2]*0.8, " 500 ",
+                          opt$genome," ", "../../",filenames[i]," ", fasta.table[i,2]*opt$identity, " ", opt$extend," ",
                           fasta.table[i,3]," ",fasta.table[i,4]))
 }
 # Delete potential empty files on the maf folder. 
