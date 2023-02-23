@@ -132,9 +132,9 @@ read_maf <- function(maf_file) {
   name <- gsub("\\..*$", "", name)
   print(paste("[+++] Processing:",name))
   if ((file.size(maf_file) != 0L) & 
-      !(file.exists(paste0(opt$output, "/", name, "_alt_1.con.fa"))) |
+      !(file.exists(paste0(opt$output, "/", name, "_alt_1.con.fa")) |
       (file.exists(paste0(opt$output, "/", name, "_alt_0.con.fa"))) |
-      (file.exists(paste0(opt$output, "/", name, ".con.fa")))) { 
+      (file.exists(paste0(opt$output, "/", name, ".con.fa"))))) { 
     maf_seqs <-
     fread(
       cmd = paste(
