@@ -13,6 +13,12 @@
 
 # Uncomment this to run in slurm if you need to install packages in your own folder.
 
+local({r <- getOption("repos")
+r["CRAN"] <- "https://cran.r-project.org"
+options(repos=r)
+})
+.libPaths( c( "~/R/x86_64-pc-linux-gnu-library/3.6" , .libPaths() ) )
+
 # To make the sampling reproducible.
 set.seed(1234) 
 
@@ -81,7 +87,7 @@ if (is.null(opt$output)) {
 
 # Max number of sequences to sample
 if ( is.null(opt$max_sequences)) {
-  opt$max_sequences = 300 
+  opt$max_sequences = 200 
 }
 
 # Min percentage of bases forming the plurality.
@@ -107,7 +113,7 @@ if ( is.null(opt$min_cluster)) {
 # Threshold to define if the edges found are too close to the end of the alignment
 # and hence whether it needs to be extended or not.
 if ( is.null(opt$end_threshold)) {
-  opt$end_threshold <- 50 
+  opt$end_threshold <- 100 
 }
 
 # If FALSE tries to remove outliers from the clusters and produces a cluster with them.
@@ -123,17 +129,17 @@ if ( is.null(opt$interactive)) {
 
 # Max number of rounds to iterate.
 if ( is.null(opt$top_rounds)) {
-  opt$top_rounds <- 10 
+  opt$top_rounds <- 6 
 } 
 
 # Bases to extend
 if ( is.null(opt$extend)) {
-  opt$extend <- 500 
+  opt$extend <- 1000 
 } 
 
 # Percentage of identity for blast.
 if ( is.null(opt$identity)) {
-  opt$identity <- 0.8
+  opt$identity <- 0.9
 } 
 
 # Read a maf file, store it on a data.table and include on the first column 
@@ -355,7 +361,7 @@ process_maf <- function(list_r) {
       aliview(as.DNAbin(t(minmin_r[,1:(ncol(minmin_r)-9)])))
       # aliview(as.DNAbin(t(r[,1:(ncol(minmin_r)-9)])))
       print("Press a key to continue")
-      xxx <- keypress()
+  #    xxx <- keypress()
    #   invisible(readline(prompt="Press [enter] to continue"))
     }
 
