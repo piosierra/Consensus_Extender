@@ -113,7 +113,7 @@ if ( is.null(opt$end_threshold)) {
 # If FALSE tries to remove outliers from the clusters and produces a cluster with them.
 # Consensus might be a little better, but we lose sequences for the alignments.
 if ( is.null(opt$group_outliers)) {
-  opt$group_outliers <- FALSE 
+  opt$group_outliers <- TRUE 
 }   
 
 # To run in an interactive way. Generates plots and shows each alignment in Aliview
@@ -454,7 +454,7 @@ left <- stats[!(end_l) & end_r]
 right <- stats[!(end_r) & end_l]
 candidates <- merge(left,right, by ="short", allow.cartesian=TRUE)
 merged_list <- c()
-if (nrow(candidates!=0)) {
+if (nrow(candidates)!=0) {
   for (name in seq(1,nrow(candidates),1)) {
     merged_name <- paste0(candidates[name]$short,"_merged")
     if (!(merged_name %in% merged_list)) {
