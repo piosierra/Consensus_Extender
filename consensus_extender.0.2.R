@@ -13,11 +13,11 @@
 
 # Uncomment this to run in slurm if you need to install packages in your own folder.
 
-# local({r <- getOption("repos")
-# r["CRAN"] <- "https://cran.r-project.org"
-# options(repos=r)
-# })
-# .libPaths( c( "~/R/x86_64-pc-linux-gnu-library/3.6" , .libPaths() ) )
+local({r <- getOption("repos")
+r["CRAN"] <- "https://cran.r-project.org"
+options(repos=r)
+})
+.libPaths( c( "~/R/x86_64-pc-linux-gnu-library/3.6" , .libPaths() ) )
 
 # To make the sampling reproducible.
 set.seed(1234) 
@@ -455,9 +455,9 @@ fwrite(stats_all, paste0(opt$output,"/stats_round_", round), sep = "\t", append 
 print(paste("[+++] Round,", round, "completed.", nrow(stats_all),"consensus sequences generated." ))
 
 # Dealing with the special case of overlapping opposite edges.
-stats[,short:=gsub("#.*$","",seq)]
-left <- stats[!(end_l) & end_r]
-right <- stats[!(end_r) & end_l]
+stats_all[,short:=gsub("#.*$","",seq)]
+left <- stats_all[!(end_l) & end_r]
+right <- stats_all[!(end_r) & end_l]
 candidates <- merge(left,right, by ="short", allow.cartesian=TRUE)
 merged_list <- c()
 if (nrow(candidates)!=0) {
