@@ -129,7 +129,7 @@ if ( is.null(opt$interactive)) {
 
 # Max number of rounds to iterate.
 if ( is.null(opt$top_rounds)) {
-  opt$top_rounds <- 6 
+  opt$top_rounds <- 10 
 } 
 
 # Bases to extend
@@ -137,9 +137,9 @@ if ( is.null(opt$extend)) {
   opt$extend <- 1000 
 } 
 
-# Percentage of identity for blast.
-if ( is.null(opt$identity)) {
-  opt$identity <- 0.9
+# Percentage of length for blast.
+if ( is.null(opt$plen)) {
+  opt$plen <- 0.8
 } 
 
 # Read a maf file, store it on a data.table and include on the first column 
@@ -381,8 +381,10 @@ process_maf <- function(list_r) {
                                               dust_right = 1-(sum(r[ID>minmin_r[min_l]$ID]$res)/(seqs*nrow(r[ID>minmin_r[min_l]$ID]))),
                                               maf_kd = kd,
                                               cluster_kd = kdc,
-                                              end_l = nrow(r[ID<minmin_r[1]$ID]) - (sum(r[ID<minmin_r[1]$ID]$res)/seqs) > opt$end_threshold,
-                                              end_r = nrow(r[ID>minmin_r[min_l]$ID]) -(sum(r[ID>minmin_r[min_l]$ID]$res)/seqs) > opt$end_threshold)))
+                                              end_l = (nrow(r[ID<minmin_r[1]$ID]) - sum(r[ID<minmin_r[1]$ID]$res+r[ID<minmin_r[1]$ID]$mb == seqs,na.rm = TRUE)) > opt$end_threshold,
+                                              end_r = (nrow(r[ID<minmin_r[min_l]$ID]) - sum(r[ID<minmin_r[min_l]$ID]$res+r[ID<minmin_r[min_l]$ID]$mb == seqs,na.rm = TRUE)) > opt$end_threshold)))
+                                      #        end_l = nrow(r[ID<minmin_r[1]$ID]) - (sum(r[ID<minmin_r[1]$ID]$res)/seqs) > opt$end_threshold,
+                                      #        end_r = nrow(r[ID>minmin_r[min_l]$ID]) -(sum(r[ID>minmin_r[min_l]$ID]$res)/seqs) > opt$end_threshold)))
     # Write fasta for final result
     if (stats[nrow(stats)]$end_l & stats[nrow(stats)]$end_r) {
       fileConn <- file(paste0(opt$output, "/final/", name, ".con.fa"))
@@ -427,7 +429,7 @@ filenames <-
 setwd(paste0(opt$output,"/mafs_",round))
 for (i in 1:length(filenames)) {
   system(command = paste0("../../",script.basename,"/make_align_from_blast_alt.sh ",
-                          opt$genome," ", "../../",filenames[i]," ", fasta.table[i,2]*opt$identity, " ", opt$extend," ",
+                          opt$genome," ", "../../",filenames[i]," ", fasta.table[i,2]*opt$plen, " ", opt$extend," ",
                           fasta.table[i,3]," ",fasta.table[i,4]))
 }
 # Delete potential empty files on the maf folder. 
