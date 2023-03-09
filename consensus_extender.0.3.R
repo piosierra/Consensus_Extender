@@ -129,7 +129,7 @@ if ( is.null(opt$interactive)) {
 
 # Max number of rounds to iterate.
 if ( is.null(opt$top_rounds)) {
-  opt$top_rounds <- 10 
+  opt$top_rounds <- 20 
 } 
 
 # Bases to extend
@@ -217,8 +217,6 @@ seq_clus <- function(maf) {
         candidate <- sum(unique(dbscan(d, eps = eps, minPts = mp)$cluster) != 0)
         points <- append(points,candidate)
       }
-      
-      print(points)
       # 3 means the cluster must extend at least over 3 eps candidate steps ("stable cluster") 
       # Could be made a parameter.
       nclusters <- max(as.numeric(names(table(points)[table(points)>3]))) 
@@ -232,7 +230,6 @@ seq_clus <- function(maf) {
       print(paste("[+++] Eps:",eps))
       if (length(table(points))>1) { # Show clusters if there are more than one (or there are outliers)
           print("[+++] Detected clusters:")
-          print(clusters)
       } else {
         print("[+++] No clusters detected.")
       }
@@ -249,7 +246,7 @@ seq_clus <- function(maf) {
       # (it does not follow the MinPoints) And only if more than 1 cluster (LTRs)
       # eps = 0 is the case in which no cluster is stable enough. Can happen on small
       # alignments. In that case we keep the whole alignment.
-      if ((0 %in% unique(clusters)) & (sum(clusters==0)>1) & max(clusters>1) | eps == 0) { 
+      if ((0 %in% unique(clusters)) & (sum(clusters==0)>mp-1) & max(clusters>1) | eps == 0) { 
         mafs[[max(unique(clusters))+1]] <- data.table(maf[, c(clusters == 0), with = FALSE])
         colnames(mafs[[max(unique(clusters))+1]])[1] <- paste0(name, "_alt_0")
       }  
@@ -343,7 +340,6 @@ process_maf <- function(list_r) {
     s <- paste0(minmin_r$base, collapse = "")
     # Alternative 
     #    s <- paste0(seqinr::consensus(t(as.matrix(minmin_r[,1:seqs])), method = "IUPAC"),collapse="")
-    
     # Draw plots and open cluster alignments in AliView when in interactive mode.
     if (opt$interactive) { 
       png(paste0("plot_",name,".png"))
@@ -359,10 +355,6 @@ process_maf <- function(list_r) {
       abline(h =opt$min_plurality/100, col="black")
       dev.off()
       aliview(as.DNAbin(t(minmin_r[,1:(ncol(minmin_r)-9)])))
-      # aliview(as.DNAbin(t(r[,1:(ncol(minmin_r)-9)])))
-      print("Press a key to continue")
-  #    xxx <- keypress()
-   #   invisible(readline(prompt="Press [enter] to continue"))
     }
 
     # Generating stats for each processed consensus. 
@@ -381,8 +373,8 @@ process_maf <- function(list_r) {
                                               dust_right = 1-(sum(r[ID>minmin_r[min_l]$ID]$res)/(seqs*nrow(r[ID>minmin_r[min_l]$ID]))),
                                               maf_kd = kd,
                                               cluster_kd = kdc,
-                                              end_l = (nrow(r[ID<minmin_r[1]$ID]) - sum(r[ID<minmin_r[1]$ID]$res+r[ID<minmin_r[1]$ID]$mb == seqs,na.rm = TRUE)) > opt$end_threshold,
-                                              end_r = (nrow(r[ID<minmin_r[min_l]$ID]) - sum(r[ID<minmin_r[min_l]$ID]$res+r[ID<minmin_r[min_l]$ID]$mb == seqs,na.rm = TRUE)) > opt$end_threshold)))
+                                              end_l = (nrow(r[ID<minmin_r[1]$ID]) - sum((r[ID<minmin_r[1]$ID]$res+r[ID<minmin_r[1]$ID]$mb) == seqs,na.rm = TRUE) - (sum(r[ID<minmin_r[1]$ID]$res)/seqs)) > opt$end_threshold,
+                                              end_r = (nrow(r[ID>minmin_r[min_l]$ID]) - sum((r[ID>minmin_r[min_l]$ID]$res+r[ID>minmin_r[min_l]$ID]$mb) == seqs,na.rm = TRUE) - (sum(r[ID>minmin_r[min_l]$ID]$res)/seqs)) > opt$end_threshold)))
                                       #        end_l = nrow(r[ID<minmin_r[1]$ID]) - (sum(r[ID<minmin_r[1]$ID]$res)/seqs) > opt$end_threshold,
                                       #        end_r = nrow(r[ID>minmin_r[min_l]$ID]) -(sum(r[ID>minmin_r[min_l]$ID]$res)/seqs) > opt$end_threshold)))
     # Write fasta for final result
@@ -428,6 +420,9 @@ filenames <-
   list.files(opt$input, pattern = "*.fa", full.names = TRUE)
 setwd(paste0(opt$output,"/mafs_",round))
 for (i in 1:length(filenames)) {
+  print(paste0("../../",script.basename,"/make_align_from_blast_alt.sh ",
+                          opt$genome," ", "../../",filenames[i]," ", fasta.table[i,2]*opt$plen, " ", opt$extend," ",
+                          fasta.table[i,3]," ",fasta.table[i,4]))
   system(command = paste0("../../",script.basename,"/make_align_from_blast_alt.sh ",
                           opt$genome," ", "../../",filenames[i]," ", fasta.table[i,2]*opt$plen, " ", opt$extend," ",
                           fasta.table[i,3]," ",fasta.table[i,4]))
@@ -455,49 +450,6 @@ for (i in lf) {
 # Write the final stats
 fwrite(stats_all, paste0(opt$output,"/stats_round_", round), sep = "\t", append = TRUE) 
 print(paste("[+++] Round,", round, "completed.", nrow(stats_all),"consensus sequences generated." ))
-
-# Dealing with the special case of overlapping opposite edges.
-stats_all[,short:=gsub("#.*$","",seq)]
-left <- stats_all[!(end_l) & end_r]
-right <- stats_all[!(end_r) & end_l]
-candidates <- merge(left,right, by ="short", allow.cartesian=TRUE)
-merged_list <- c()
-if (nrow(candidates)!=0) {
-  for (name in seq(1,nrow(candidates),1)) {
-    merged_name <- paste0(candidates[name]$short,"_merged")
-    if (!(merged_name %in% merged_list)) {
-    if (candidates[name]$end_r.x) {
-      sleft <- candidates[name]$seq.y
-      sright <- candidates[name]$seq.x
-    } else {
-      sleft <- candidates[name]$seq.x
-      sright <- candidates[name]$seq.y
-    }
-    seq_l <- fread(cmd = paste0("awk '(NR)%2==0' ",opt$output,"/to_extend_",round,"/",sleft,".con.fa"),header = F, col.names=c("sequence"))
-    seq_r <- fread(cmd = paste0("awk '(NR)%2==0' ",opt$output,"/to_extend_",round,"/",sright,".con.fa"),header = F, col.names=c("sequence"))
-    merged <- FALSE
-    for (i in seq(50,(min(nchar(seq_l),nchar(seq_r))-1),1)) {
-      if (mapply(function(x,y) sum(x!=y),
-                 strsplit(substr(seq_r,1,i),""),
-                 strsplit(substr(seq_l,nchar(seq_l)-i+1,nchar(seq_l)),"")) < 5) { # Replace with KD between both
-        print(paste("Merging edges for",candidates[name]$short,"- Overlap =", i))
-        merged_seq <- paste0(seq_l, substr(seq_r,i+1,nchar(seq_r)))
-        clean_fasta <- cbind(c(t(data.table(paste0(">",merged_name),merged_seq))))
-        fwrite(clean_fasta,paste0(opt$output,"/final/", merged_name,"-",name, ".con.fa"), sep=" ", col.names= FALSE)
-        unlink(paste0(opt$output,"/to_extend_",round,"/",sleft,".con.fa"))
-        unlink(paste0(opt$output,"/to_extend_",round,"/",sright,".con.fa"))
-        stats_all[seq==paste0(sleft,".con.fa")] <- NULL
-        stats_all[seq==paste0(sright,".con.fa")] <- NULL
-        merged <- TRUE
-      }
-      if (merged) { 
-        merged_list <- c(merged_list,merged_name)
-        break
-      }
-    }
-  }
-  }
-}
 
 fasta.table <- stats_all[,c(1,4,13,14)]
 fasta.table <- fasta.table[!(end_l==TRUE & end_r == TRUE)] 
